@@ -1,5 +1,7 @@
 package com.example.gamesdecolores
 
+import android.media.AudioAttributes // ¡Importante!
+import android.media.SoundPool // ¡Importante!
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.LayoutInflater
@@ -10,16 +12,14 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels // ¡Importante!
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 
 class GameFragment : Fragment() {
 
-    // --- ¡CAMBIO PARA EL 20/20! ---
-    // Obtenemos el ViewModel. Esta "caja fuerte" sobrevive a la rotación
     private val viewModel: GameViewModel by viewModels()
 
-    // Declaramos las vistas
+    // Vistas
     private lateinit var scoreTextView: TextView
     private lateinit var timerTextView: TextView
     private lateinit var colorDisplayView: View
@@ -31,7 +31,12 @@ class GameFragment : Fragment() {
     private lateinit var timer: CountDownTimer
     private var currentColorResId: Int = 0
 
-    // Mapa de colores
+    // --- ¡CAMBIO PARA SONIDOS! ---
+    private lateinit var soundPool: SoundPool
+    private var correctSoundId: Int = 0
+    private var incorrectSoundId: Int = 0
+    // --- FIN CAMBIO ---
+
     private val gameColors by lazy {
         mapOf(
             R.id.redButton to R.color.game_red,
@@ -51,7 +56,7 @@ class GameFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Inicializamos las vistas
+        // Inicializar vistas (findViewById)
         scoreTextView = view.findViewById(R.id.scoreTextView)
         timerTextView = view.findViewById(R.id.timerTextView)
         colorDisplayView = view.findViewById(R.id.colorDisplayView)
@@ -60,24 +65,41 @@ class GameFragment : Fragment() {
         blueButton = view.findViewById(R.id.blueButton)
         yellowButton = view.findViewById(R.id.yellowButton)
 
+        // --- ¡CAMBIO PARA SONIDOS! ---
+        setupSoundPool()
+        // --- FIN CAMBIO ---
+
         setupGame()
 
-        // --- ¡CAMBIO PARA EL 20/20! ---
-        // Solo inicia el temporizador si no estaba ya corriendo
         if (!viewModel.isTimerRunning) {
             startTimer(viewModel.remainingTime)
         } else {
-            // Si ya corría, solo lo recrea con el tiempo que quedaba
             startTimer(viewModel.remainingTime)
         }
     }
 
+    // --- ¡NUEVA FUNCIÓN! ---
+    private fun setupSoundPool() {
+        // Configura el SoundPool para juegos
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_GAME)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+
+        soundPool = SoundPool.Builder()
+            .setMaxStreams(2) // Podemos sonar 2 efectos a la vez
+            .setAudioAttributes(audioAttributes)
+            .build()
+
+        // Carga los sonidos en memoria para usarlos rápido
+        correctSoundId = soundPool.load(requireContext(), R.raw.correct, 1)
+        incorrectSoundId = soundPool.load(requireContext(), R.raw.incorrect, 1)
+    }
+    // --- FIN FUNCIÓN ---
+
     private fun setupGame() {
-        // ¡CAMBIO! Leemos el puntaje desde el ViewModel
         updateScoreDisplay()
         nextColor()
-
-        // Asignamos los listeners
         redButton.setOnClickListener { checkAnswer(R.color.game_red) }
         greenButton.setOnClickListener { checkAnswer(R.color.game_green) }
         blueButton.setOnClickListener { checkAnswer(R.color.game_blue) }
@@ -92,45 +114,44 @@ class GameFragment : Fragment() {
 
     private fun checkAnswer(selectedColorResId: Int) {
         if (selectedColorResId == currentColorResId) {
-            // ¡CAMBIO! Guardamos el puntaje en el ViewModel
+            // --- ¡CAMBIO PARA SONIDOS! ---
+            soundPool.play(correctSoundId, 1f, 1f, 1, 0, 1f)
+            // --- FIN CAMBIO ---
             viewModel.score++
             updateScoreDisplay()
+        } else {
+            // --- ¡CAMBIO PARA SONIDOS! ---
+            // Toca el sonido de error
+            soundPool.play(incorrectSoundId, 1f, 1f, 1, 0, 1f)
+            // --- FIN CAMBIO ---
         }
-        nextColor()
+        nextColor() // Mover al siguiente color en ambos casos
     }
 
     private fun updateScoreDisplay() {
-        // ¡CAMBIO! Leemos el puntaje desde el ViewModel
         scoreTextView.text = getString(R.string.score_format, viewModel.score)
     }
 
-    // ¡CAMBIO! Acepta el tiempo restante como parámetro
     private fun startTimer(startTimeInMillis: Long) {
         viewModel.isTimerRunning = true
         timer = object : CountDownTimer(startTimeInMillis, 1000) {
 
             override fun onTick(millisUntilFinished: Long) {
-                // ¡CAMBIO! Guardamos el tiempo restante en el ViewModel
                 viewModel.remainingTime = millisUntilFinished
                 timerTextView.text = getString(R.string.time_format, millisUntilFinished / 1000)
             }
 
             override fun onFinish() {
                 viewModel.isTimerRunning = false
-                viewModel.remainingTime = 30000L // Reinicia el tiempo para la próxima partida
-
-                // Navega a resultados
+                viewModel.remainingTime = 30000L
                 val bundle = Bundle()
-                // ¡CAMBIO! Pasamos el puntaje desde el ViewModel
                 bundle.putInt("finalScore", viewModel.score)
-                viewModel.score = 0 // Reinicia el puntaje para la próxima partida
-
+                viewModel.score = 0
                 findNavController().navigate(R.id.action_gameFragment_to_resultFragment, bundle)
             }
         }.start()
     }
 
-    // Funcionalidad Adicional ObligatorIA: Animación
     private fun applyFadeInAnimation(view: View) {
         val fadeIn = AlphaAnimation(0f, 1f)
         fadeIn.duration = 400
@@ -139,6 +160,9 @@ class GameFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        timer.cancel() // Es crucial para evitar fugas de memoria
+        timer.cancel()
+        // --- ¡CAMBIO PARA SONIDOS! ---
+        soundPool.release() // Libera los recursos del soundpool
+        // --- FIN CAMBIO ---
     }
 }
