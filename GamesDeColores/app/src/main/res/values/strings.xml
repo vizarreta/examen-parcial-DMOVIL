@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">GamesDeColores</string>
+
+    <string name="game_title">Games de Colores</string>
+    <string name="start_game_button">Iniciar Juego</string>
+    <string name="rules_button">Reglas del Juego</string>
+    <string name="rules_title">🎯 Reglas del Juego</string>
+    <string name="rules_message">El objetivo es presionar el botón que coincida con el color que aparece en el cuadro. ¡Obtén la mayor cantidad de aciertos en 30 segundos!</string>
+    <string name="rules_ok_button">¡Entendido!</string>
+
+    <string name="initial_score">Puntaje: 0</string>
+    <string name="initial_time">Tiempo: 30s</string>
+    <string name="score_format">Puntaje: %d</string>
+    <string name="time_format">Tiempo: %ds</string>
+    <string name="color_red">Rojo</string>
+    <string name="color_green">Verde</string>
+    <string name="color_blue">Azul</string>
+    <string name="color_yellow">Amarillo</string>
+
+    <string name="final_score_format">Puntaje Final: %d</string>
+    <string name="high_score_format">Puntaje Más Alto: %d</string>
+    <string name="new_high_score_format">¡Nuevo Récord!: %d</string>
+    <string name="session_history_title">Historial de la Sesión</string>
+    <string name="play_again_button">Volver a Jugar</string>
+    <string name="history_item_format">Partida %d: %d puntos</string>
+
+    <string name="preference_file_key">com.example.gamesdecolores.PREFERENCE_FILE_KEY</string>
+    <string name="high_score_key">high_score</string>
+</resources>
